@@ -53,6 +53,11 @@ export function NavigationInspector() {
         <strong>Error</strong>
         <pre>{JSON.stringify(state.error ?? {}, null, 2)}</pre>
       </section>
+
+      <section>
+        <strong>Transition</strong>
+        <pre>{state.transitionStatus}</pre>
+      </section>
     </aside>
   );
 }

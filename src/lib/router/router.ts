@@ -1,3 +1,4 @@
+import { runViewTransition } from "./transition";
 import type {
   Params,
   RouteData,
@@ -16,6 +17,7 @@ export function createRouter(init: RouterInit): Router {
     data: {},
     error: null,
     status: "idle",
+    transitionStatus: "idle",
   };
 
   const subscribers = new Set<RouterSubscriber>();
@@ -56,18 +58,14 @@ export function createRouter(init: RouterInit): Router {
       data: {},
       error: null,
       status: "loading",
+      transitionStatus: "idle",
     });
 
     try {
       const { data, error } = await runLoaders(matches, url, controller.signal);
 
-      if (navigationId !== currentNavigationId) {
-        return;
-      }
-
-      if (controller.signal.aborted) {
-        return;
-      }
+      if (navigationId !== currentNavigationId) return;
+      if (controller.signal.aborted) return;
 
       setState({
         location: url,
@@ -75,6 +73,27 @@ export function createRouter(init: RouterInit): Router {
         data,
         error,
         status: error ? "error" : "idle",
+        transitionStatus: "running",
+      });
+
+      const transitionResult = await runViewTransition(() => {
+        setState({
+          location: url,
+          matches,
+          data,
+          error,
+          status: error ? "error" : "idle",
+          transitionStatus: "running",
+        });
+      });
+
+      setState({
+        location: url,
+        matches,
+        data,
+        error,
+        status: error ? "error" : "idle",
+        transitionStatus: transitionResult,
       });
     } catch (e) {
       if (navigationId !== currentNavigationId) {
@@ -87,6 +106,7 @@ export function createRouter(init: RouterInit): Router {
           data: {},
           error: null,
           status: "aborted",
+          transitionStatus: "skipped",
         });
         return;
       }
@@ -99,6 +119,7 @@ export function createRouter(init: RouterInit): Router {
           global: e,
         },
         status: "error",
+        transitionStatus: "skipped",
       });
     }
   }

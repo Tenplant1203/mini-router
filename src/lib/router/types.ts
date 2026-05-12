@@ -19,6 +19,7 @@ export interface RouterState {
   data: RouteData;
   error: RouteData | null;
   status: NavigationStatus;
+  transitionStatus: TransitionStatus;
 }
 
 export interface RouteData {
@@ -59,3 +60,5 @@ export interface RouteMatch<
 }
 
 export type NavigationStatus = "idle" | "loading" | "aborted" | "error";
+
+export type TransitionStatus = "idle" | "running" | "finished" | "skipped";
