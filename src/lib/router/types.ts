@@ -58,4 +58,4 @@ export interface RouteMatch<
   route: RouteObjectType;
 }
 
-export type NavigationStatus = "idle" | "loading" | "error";
+export type NavigationStatus = "idle" | "loading" | "aborted" | "error";

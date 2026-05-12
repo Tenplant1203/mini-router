@@ -22,6 +22,9 @@ export function createRouter(init: RouterInit): Router {
   const routes = init.routes;
   const basename = init.basename ?? "/";
 
+  let currentController: AbortController | null = null;
+  let currentNavigationId = 0;
+
   function setState(nextState: RouterState) {
     state = nextState;
 
@@ -38,6 +41,13 @@ export function createRouter(init: RouterInit): Router {
   }
 
   async function updateStateFromUrl(url: URL) {
+    const navigationId = ++currentNavigationId;
+
+    currentController?.abort();
+
+    const controller = new AbortController();
+    currentController = controller;
+
     const matches = matchRoutes(routes, url.pathname);
 
     setState({
@@ -48,15 +58,49 @@ export function createRouter(init: RouterInit): Router {
       status: "loading",
     });
 
-    const { data, error } = await runLoaders(matches, url);
+    try {
+      const { data, error } = await runLoaders(matches, url, controller.signal);
 
-    setState({
-      location: url,
-      matches,
-      data: data,
-      error,
-      status: error ? "error" : "idle",
-    });
+      if (navigationId !== currentNavigationId) {
+        return;
+      }
+
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      setState({
+        location: url,
+        matches,
+        data,
+        error,
+        status: error ? "error" : "idle",
+      });
+    } catch (e) {
+      if (navigationId !== currentNavigationId) {
+        return;
+      }
+      if (controller.signal.aborted) {
+        setState({
+          location: url,
+          matches,
+          data: {},
+          error: null,
+          status: "aborted",
+        });
+        return;
+      }
+
+      setState({
+        location: url,
+        matches,
+        data: {},
+        error: {
+          global: e,
+        },
+        status: "error",
+      });
+    }
   }
 
   async function handlePopState() {
@@ -142,6 +186,7 @@ export function matchRoutes(
 async function runLoaders(
   matches: RouteMatch[],
   url: URL,
+  signal: AbortSignal,
 ): Promise<{
   data: RouteData;
   error: RouteData | null;
@@ -157,9 +202,12 @@ async function runLoaders(
       data[match.route.id] = await loader({
         params: match.params,
         request: new Request(url),
-        signal: new AbortController().signal, // TODO: abort issue
+        signal,
       });
     } catch (e) {
+      if (signal.aborted) {
+        throw e;
+      }
       error[match.route.id] = e;
     }
   }
