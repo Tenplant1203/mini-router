@@ -1,5 +1,6 @@
 import type {
   Params,
+  RouteData,
   RouteMatch,
   RouteObject,
   Router,
@@ -14,6 +15,7 @@ export function createRouter(init: RouterInit): Router {
     matches: matchRoutes(init.routes, window.location.pathname),
     data: {},
     error: null,
+    status: "idle",
   };
 
   const subscribers = new Set<RouterSubscriber>();
@@ -35,7 +37,7 @@ export function createRouter(init: RouterInit): Router {
     };
   }
 
-  function updateStateFromUrl(url: URL) {
+  async function updateStateFromUrl(url: URL) {
     const matches = matchRoutes(routes, url.pathname);
 
     setState({
@@ -43,19 +45,28 @@ export function createRouter(init: RouterInit): Router {
       matches,
       data: {},
       error: null,
+      status: "loading",
+    });
+
+    const { data, error } = await runLoaders(matches, url);
+
+    setState({
+      location: url,
+      matches,
+      data: data,
+      error,
+      status: error ? "error" : "idle",
     });
   }
 
-  function handlePopState() {
-    const url = new URL(window.location.href);
-    updateStateFromUrl(url);
+  async function handlePopState() {
+    void updateStateFromUrl(new URL(window.location.href));
   }
 
   async function navigate(to: string): Promise<void> {
     const url = new URL(to, window.location.origin);
-
-    window.history.pushState(null, "", url.pathname);
-    updateStateFromUrl(url);
+    window.history.pushState(null, "", url.pathname + url.search + url.hash);
+    await updateStateFromUrl(url);
   }
 
   window.addEventListener("popstate", handlePopState);
@@ -126,4 +137,34 @@ export function matchRoutes(
   }
 
   return [];
+}
+
+async function runLoaders(
+  matches: RouteMatch[],
+  url: URL,
+): Promise<{
+  data: RouteData;
+  error: RouteData | null;
+}> {
+  const data: RouteData = {};
+  const error: RouteData = {};
+
+  for (const match of matches) {
+    const loader = match.route.loader;
+    if (!loader) continue;
+
+    try {
+      data[match.route.id] = await loader({
+        params: match.params,
+        request: new Request(url),
+        signal: new AbortController().signal, // TODO: abort issue
+      });
+    } catch (e) {
+      error[match.route.id] = e;
+    }
+  }
+  return {
+    data,
+    error: Object.keys(error).length > 0 ? error : null,
+  };
 }

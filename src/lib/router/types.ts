@@ -18,6 +18,7 @@ export interface RouterState {
   matches: RouteMatch[];
   data: RouteData;
   error: RouteData | null;
+  status: NavigationStatus;
 }
 
 export interface RouteData {
@@ -56,3 +57,5 @@ export interface RouteMatch<
   pathnameBase: string;
   route: RouteObjectType;
 }
+
+export type NavigationStatus = "idle" | "loading" | "error";
