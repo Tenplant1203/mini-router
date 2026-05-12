@@ -2,6 +2,7 @@ import { routes } from "./routes";
 import { NativeRouterProvider } from "../lib/react/NativeRouterProvider";
 import { Outlet } from "../lib/react/Outlet";
 import { Link } from "../lib/react/Link";
+import { NavigationInspector } from "./components/NavigationInspector";
 
 export function App() {
   return (
@@ -14,7 +15,12 @@ export function App() {
         <Link to="/items/3">Item 3</Link>
         <Link to="/search">Search</Link>
       </nav>
+
+      <hr />
+
       <Outlet />
+
+      <NavigationInspector />
     </NativeRouterProvider>
   );
 }
