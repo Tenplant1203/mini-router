@@ -14,6 +14,7 @@ export function App() {
         <Link to="/items/2">Item 2</Link>
         <Link to="/items/3">Item 3</Link>
         <Link to="/search">Search</Link>
+        <a href="/items/1">a tag navigate</a>
       </nav>
 
       <hr />

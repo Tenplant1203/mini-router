@@ -1,10 +1,9 @@
-::view-transition-old(root),
 ::view-transition-old(root) {
-  animation: fade-out 700ms ease both;
+  animation: fade-out 250ms ease both;
 }
 
 ::view-transition-new(root) {
-  animation: fade-in 700ms ease both;
+  animation: fade-in 250ms ease both;
 }
 
 @keyframes fade-out {
@@ -27,7 +26,4 @@
     opacity: 1;
     transform: scale(1);
   }
-}
-::view-transition-new(root) {
-  animation-duration: 250ms;
 }

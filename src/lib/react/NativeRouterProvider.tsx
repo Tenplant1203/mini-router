@@ -16,6 +16,7 @@ export function NativeRouterProvider({
     return createRouter({
       routes,
       history: {} as never, // TODO: historyの実装
+      unstable_useNavigationApi: true,
     });
   }, [routes]);
 

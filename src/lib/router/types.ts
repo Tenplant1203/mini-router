@@ -11,6 +11,7 @@ export interface RouterInit {
   routes: RouteObject[];
   history: History;
   basename?: string;
+  unstable_useNavigationApi?: boolean;
 }
 
 export interface RouterState {
