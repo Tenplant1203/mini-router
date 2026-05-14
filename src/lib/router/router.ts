@@ -27,6 +27,9 @@ export function createRouter(init: RouterInit): Router {
   let currentController: AbortController | null = null;
   let currentNavigationId = 0;
 
+  const useNavigationApi =
+    init.unstable_useNavigationApi === true && "navigation" in window;
+
   function setState(nextState: RouterState) {
     state = nextState;
 
@@ -40,6 +43,30 @@ export function createRouter(init: RouterInit): Router {
     return () => {
       subscribers.delete(fn);
     };
+  }
+
+  function handleNavigateEvent(event: NavigateEvent) {
+    console.log("[navigation-api:navigate]", {
+      url: event.destination.url,
+      canIntercept: event.canIntercept,
+      hashChange: event.hashChange,
+      downloadRequest: event.downloadRequest,
+      navigationType: event.navigationType,
+    });
+
+    if (!event.canIntercept) return;
+    if (event.hashChange) return;
+    if (event.downloadRequest !== null) return;
+
+    const url = new URL(event.destination.url);
+
+    if (url.origin !== window.location.origin) return;
+
+    event.intercept({
+      async handler() {
+        await updateStateFromUrl(url);
+      },
+    });
   }
 
   async function updateStateFromUrl(url: URL) {
@@ -67,16 +94,10 @@ export function createRouter(init: RouterInit): Router {
       if (navigationId !== currentNavigationId) return;
       if (controller.signal.aborted) return;
 
-      setState({
-        location: url,
-        matches,
-        data,
-        error,
-        status: error ? "error" : "idle",
-        transitionStatus: "running",
-      });
-
       const transitionResult = await runViewTransition(() => {
+        if (navigationId !== currentNavigationId) return;
+        if (controller.signal.aborted) return;
+
         setState({
           location: url,
           matches,
@@ -86,6 +107,9 @@ export function createRouter(init: RouterInit): Router {
           transitionStatus: "running",
         });
       });
+
+      if (navigationId !== currentNavigationId) return;
+      if (controller.signal.aborted) return;
 
       setState({
         location: url,
@@ -134,7 +158,11 @@ export function createRouter(init: RouterInit): Router {
     await updateStateFromUrl(url);
   }
 
-  window.addEventListener("popstate", handlePopState);
+  if (useNavigationApi && window.navigation) {
+    window.navigation.addEventListener("navigate", handleNavigateEvent);
+  } else {
+    window.addEventListener("popstate", handlePopState);
+  }
 
   return {
     get basename() {
