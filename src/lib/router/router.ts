@@ -152,15 +152,26 @@ export function createRouter(init: RouterInit): Router {
     void updateStateFromUrl(new URL(window.location.href));
   }
 
+  function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === "AbortError";
+  }
+
   async function navigate(to: string): Promise<void> {
     const url = new URL(to, window.location.origin);
     const href = url.pathname + url.search + url.hash;
 
-    if (useNavigationApi && window.navigation) {
-      await window.navigation.navigate(href).finished;
-    } else {
-      window.history.pushState(null, "", href);
-      await updateStateFromUrl(url);
+    try {
+      if (useNavigationApi && window.navigation) {
+        await window.navigation.navigate(href).finished;
+      } else {
+        window.history.pushState(null, "", href);
+        await updateStateFromUrl(url);
+      }
+    } catch (error) {
+      if (isAbortError(error)) {
+        return;
+      }
+      throw error;
     }
   }
 
