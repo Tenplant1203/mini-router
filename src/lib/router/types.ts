@@ -5,6 +5,9 @@ export interface Router {
 
   subscribe(fn: RouterSubscriber): () => void;
   navigate(to: string): Promise<void>;
+
+  start(): void;
+  dispose(): void;
 }
 
 export interface RouterInit {
