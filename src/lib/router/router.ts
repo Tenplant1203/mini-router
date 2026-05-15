@@ -154,8 +154,14 @@ export function createRouter(init: RouterInit): Router {
 
   async function navigate(to: string): Promise<void> {
     const url = new URL(to, window.location.origin);
-    window.history.pushState(null, "", url.pathname + url.search + url.hash);
-    await updateStateFromUrl(url);
+    const href = url.pathname + url.search + url.hash;
+
+    if (useNavigationApi && window.navigation) {
+      await window.navigation.navigate(href).finished;
+    } else {
+      window.history.pushState(null, "", href);
+      await updateStateFromUrl(url);
+    }
   }
 
   if (useNavigationApi && window.navigation) {
