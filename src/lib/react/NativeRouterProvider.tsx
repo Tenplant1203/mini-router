@@ -23,7 +23,14 @@ export function NativeRouterProvider({
   const [state, setState] = useState<RouterState>(router.state);
 
   useEffect(() => {
-    return router.subscribe(setState);
+    router.start();
+
+    const unsubscribe = router.subscribe(setState);
+
+    return () => {
+      unsubscribe();
+      router.dispose();
+    };
   }, [router]);
 
   return (

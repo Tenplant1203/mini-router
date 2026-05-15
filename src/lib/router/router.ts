@@ -20,6 +20,8 @@ export function createRouter(init: RouterInit): Router {
     transitionStatus: "idle",
   };
 
+  let started = false;
+
   const subscribers = new Set<RouterSubscriber>();
   const routes = init.routes;
   const basename = init.basename ?? "/";
@@ -175,10 +177,28 @@ export function createRouter(init: RouterInit): Router {
     }
   }
 
-  if (useNavigationApi && window.navigation) {
-    window.navigation.addEventListener("navigate", handleNavigateEvent);
-  } else {
-    window.addEventListener("popstate", handlePopState);
+  function start() {
+    if (started) return;
+    started = true;
+    if (useNavigationApi && window.navigation) {
+      window.navigation.addEventListener("navigate", handleNavigateEvent);
+    } else {
+      window.addEventListener("popstate", handlePopState);
+    }
+  }
+
+  function dispose() {
+    if (!started) return;
+    started = false;
+
+    if (useNavigationApi && window.navigation) {
+      window.navigation.removeEventListener("navigate", handleNavigateEvent);
+    } else {
+      window.removeEventListener("popstate", handlePopState);
+    }
+
+    currentController?.abort();
+    currentController = null;
   }
 
   return {
@@ -193,6 +213,8 @@ export function createRouter(init: RouterInit): Router {
     },
     subscribe,
     navigate,
+    start,
+    dispose,
   };
 }
 
