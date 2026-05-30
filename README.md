@@ -1,4 +1,4 @@
-# Browser-Native React Router
+# Mini router
 
 ブラウザ標準APIでSPAルーティングを再設計する、実験的なReact Routerです。
 
